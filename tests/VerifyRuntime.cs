@@ -5,6 +5,7 @@ using System.IO;
 using System.Reflection;
 using System.Resources;
 using System.Runtime.CompilerServices;
+using System.Linq;
 class VerifyRuntime {
  static Assembly app;
  static Dictionary<string,byte[]> libs=new Dictionary<string,byte[]>(StringComparer.OrdinalIgnoreCase);
@@ -22,10 +23,12 @@ class VerifyRuntime {
     string key=new AssemblyName(e.Name).Name;
     byte[] bytes; return libs.TryGetValue(key,out bytes)?Assembly.Load(bytes):null;
    };
-   foreach(var pair in new[]{"PCL.PageDownloadInstall|LoaderInit","PCL.PageDownloadModify|LoadInstanceFinished"}) {
-    var p=pair.Split('|'); var method=app.GetType(p[0],true).GetMethod(p[1],BindingFlags.Instance|BindingFlags.Public|BindingFlags.NonPublic);
-    RuntimeHelpers.PrepareMethod(method.MethodHandle);
-    Console.WriteLine("JIT OK: "+method.DeclaringType.FullName+"."+method.Name);
+   foreach(var pair in new[]{"PCL.PageDownloadInstall|LoaderInit","PCL.PageDownloadModify|LoadInstanceFinished","PCL.ModModpack|ModpackInstall","PCL.PageDownloadResourceDetail|InitializeStackResourceVersions"}) {
+    var p=pair.Split('|');
+    foreach(var method in app.GetType(p[0],true).GetMethods(BindingFlags.Instance|BindingFlags.Static|BindingFlags.Public|BindingFlags.NonPublic).Where(m=>m.Name==p[1])) {
+     RuntimeHelpers.PrepareMethod(method.MethodHandle);
+     Console.WriteLine("JIT OK: "+method.DeclaringType.FullName+"."+method.Name+"/"+method.GetParameters().Length);
+    }
    }
    return 0;
   } catch(Exception ex){Console.WriteLine(ex);return 1;}

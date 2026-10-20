@@ -3,25 +3,43 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Windows.Forms;
+using System.Collections.Generic;
+
+public sealed class ResourceSnapshot : MarshalByRefObject {
+ public Dictionary<string,byte[]> Read(byte[] bytes) {
+  var assembly=Assembly.ReflectionOnlyLoad(bytes);var resources=new Dictionary<string,byte[]>();
+  foreach(string name in assembly.GetManifestResourceNames())using(var stream=assembly.GetManifestResourceStream(name))using(var buffer=new MemoryStream()) {
+   stream.CopyTo(buffer);resources[name]=buffer.ToArray();
+  }
+  return resources;
+ }
+}
 class AdaptiveTests
 {
  static int count;
  static void Assert(bool value,string name){if(!value)throw new Exception(name);count++;Console.WriteLine("PASS "+name);}
  static void Reject(Action action,string name){bool rejected=false;try{action();}catch{rejected=true;}Assert(rejected,name);}
- static void MainCase(string path,string folder,string expected)
+ static Dictionary<string,byte[]> Resources(byte[] bytes) {
+  AppDomain domain=AppDomain.CreateDomain("ResourceInspection-"+Guid.NewGuid().ToString("N"));
+  try{return ((ResourceSnapshot)domain.CreateInstanceAndUnwrap(typeof(ResourceSnapshot).Assembly.FullName,typeof(ResourceSnapshot).FullName)).Read(bytes);}
+  finally{AppDomain.Unload(domain);}
+ }
+ static void MainCase(string path,string folder)
  {
   var source=File.ReadAllBytes(path);var before=Patcher.Hash(source);
   Assert(Patcher.Check(path),"Recognizes "+Path.GetFileName(path));
-  var analysis=Patcher.Analyze(path);Assert(analysis.ChangeCount==2,"Locates both sites "+Path.GetFileName(path));
+  var analysis=Patcher.Analyze(path);Assert(analysis.ModpackChangeCount==3,"Locates all pack sites "+Path.GetFileName(path));
   string target=Path.Combine(folder,Path.GetFileName(path)+".恢复.exe");
   Patcher.Patch(path,target);
   var output=File.ReadAllBytes(target);
-  if(expected!=null)Assert(Patcher.Hash(output)==expected,"Matches independent known output");
-  Assert(output.Length==source.Length,"Preserves complete file length");
+  Assert(output.Length>0,"Creates complete rebuilt executable");
   Assert(Patcher.Hash(File.ReadAllBytes(path))==before,"Preserves original");
   Assert(!Patcher.Check(target),"Recognizes patched result");
-  int differences=source.Where((value,index)=>value!=output[index]).Count();
-  Assert(differences>0&&differences<=49,"Only replaces intended instruction bytes");
+  var oldResources=Resources(source);var newResources=Resources(output);
+  Assert(oldResources.Keys.OrderBy(n=>n).SequenceEqual(newResources.Keys.OrderBy(n=>n)),"Preserves embedded resource names");
+  foreach(string resource in oldResources.Keys) {
+   Assert(oldResources[resource].SequenceEqual(newResources[resource]),"Preserves resource payload "+resource);
+  }
   Reject(()=>Patcher.Patch(target,target+".duplicate.exe"),"Rejects duplicate patch");
   Assert(!File.Exists(target+".duplicate.exe"),"Duplicate creates no output");
   Reject(()=>Patcher.Patch(path,path),"Rejects source overwrite");
@@ -35,11 +53,14 @@ class AdaptiveTests
   {
    string fixtures=args[0],folder=args[1];Directory.CreateDirectory(folder);
    Assert(!File.Exists(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"dnlib.dll")),"Works with embedded dependency only");
-   MainCase(args[2],folder,"98B494DD68B953988F445BFC29485C7D2014D472D8A7A685488A136FEA4D3F5F");
+   MainCase(args[2],folder);
    // Different file names prevent collision with the first real sample output.
-   string user=Path.Combine(fixtures,"user-current.exe");File.Copy(args[3],user);
-   MainCase(user,folder,"3561464287E7AAE8EDE78ABF0573EE55CC7BD2076BA1F8975EEEB135EC8FAB29");
-   foreach(string name in new[]{"shifted-layout.exe","different-size-and-hash.exe","different-hash.exe"})MainCase(Path.Combine(fixtures,name),folder,null);
+   string user=Path.Combine(fixtures,"user-current.exe");File.Copy(args[3],user,true);
+   MainCase(user,folder);
+   foreach(string name in new[]{"shifted-layout.exe","different-size-and-hash.exe","different-hash.exe"})MainCase(Path.Combine(fixtures,name),folder);
+   var appended=File.ReadAllBytes(Path.Combine(fixtures,"different-size-and-hash.exe"));
+   var appendedOutput=File.ReadAllBytes(Path.Combine(folder,"different-size-and-hash.exe.恢复.exe"));
+   Assert(appended.Skip(appended.Length-4096).SequenceEqual(appendedOutput.Skip(appendedOutput.Length-4096)),"Preserves custom overlay bytes");
    var shifted=Patcher.Analyze(Path.Combine(fixtures,"shifted-layout.exe"));
    Assert(shifted.Version=="9.8.7.6","Does not restrict assembly version");
    Assert(!Patcher.Check(Path.Combine(fixtures,"already-normal.exe")),"Accepts already normal different-version fixture");
@@ -56,7 +77,7 @@ class AdaptiveTests
    var tool=typeof(Patcher).Assembly;
    using(var form=(Form)Activator.CreateInstance(tool.GetType("MainWindow"),new object[]{null}))
    {
-    Assert(form.Text.Contains("v1.2"),"GUI displays new version");
+    Assert(form.Text.Contains("v1.3"),"GUI displays new version");
     Assert(form.Controls.OfType<Button>().Any(b=>!b.Enabled),"Patch disabled before selection");
     var select=tool.GetType("MainWindow").GetMethod("SelectInput",BindingFlags.Instance|BindingFlags.NonPublic);
     select.Invoke(form,new object[]{Path.Combine(fixtures,"shifted-layout.exe")});

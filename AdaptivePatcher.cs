@@ -37,7 +37,9 @@ public sealed class AnalysisResult
 {
     public string Version { get; internal set; }
     public string Detail { get; internal set; }
-    public int ChangeCount { get { return Changes.Count; } }
+    public int ChangeCount { get { return Changes.Count + ModpackChanges; } }
+    public int ModpackChangeCount { get { return ModpackChanges; } }
+    internal int ModpackChanges;
     internal readonly List<ByteChange> Changes = new List<ByteChange>();
 }
 
@@ -202,7 +204,10 @@ public static class Patcher
                 }
                 else if (visibility == 0) extra = "版本修改页的原版入口已可见。";
             }
-            result.Detail = (markers.Length == 1 ? "已定位原版下载限制，可生成副本。" : "原版下载页已使用正常加载器。") + "\n" + extra;
+            ModpackRepair.Plan modpack = ModpackRepair.Inspect(module);
+            result.ModpackChanges = modpack.Count;
+            result.Detail = (markers.Length == 1 ? "已定位原版下载限制，可生成副本。" : "原版下载页已使用正常加载器。") + "\n" + extra +
+                (modpack.Count > 0 ? "\n整合包：将恢复本地导入、拖入和在线安装入口。" : "\n整合包：未发现已知安装限制。");
             return result;
         }
     }
@@ -213,13 +218,14 @@ public static class Patcher
         LibraryBootstrap.Install();
         byte[] bytes = Read(input);
         AnalysisResult plan = AnalyzeBytes(bytes);
-        if (plan.ChangeCount == 0) throw new InvalidOperationException("原版下载入口无需处理，未生成重复副本。");
+        if (plan.ChangeCount == 0) throw new InvalidOperationException("下载与整合包入口无需处理，未生成重复副本。");
         foreach (ByteChange change in plan.Changes)
         {
             for (int n = 0; n < change.Before.Length; n++)
                 if (bytes[change.Offset + n] != change.Before[n]) throw Unsupported("指令校验失败");
             Array.Copy(change.After, 0, bytes, change.Offset, change.After.Length);
         }
+        if (plan.ModpackChanges > 0) bytes = ModpackRepair.Repair(bytes);
         if (AnalyzeBytes(bytes).ChangeCount != 0) throw Unsupported("输出结构复检未通过");
         string expected = Hash(bytes);
         bool created = false, complete = false;

@@ -8,8 +8,8 @@ using System.Windows.Forms;
 
 [assembly: AssemblyTitle("PCL 原版下载恢复工具（第三方）")]
 [assembly: AssemblyDescription("自动定位 PCL 原版下载限制，不按版本或整文件指纹筛选")]
-[assembly: AssemblyVersion("1.2.1.0")]
-[assembly: AssemblyFileVersion("1.2.1.0")]
+[assembly: AssemblyVersion("1.3.0.0")]
+[assembly: AssemblyFileVersion("1.3.0.0")]
 
 class MainWindow : Form
 {
@@ -19,7 +19,7 @@ class MainWindow : Form
     readonly Button browse = new Button();
     public MainWindow(string initial)
     {
-        Text = "PCL 原版下载恢复工具 v1.2.1（第三方）";
+        Text = "PCL 原版下载恢复工具 v1.3（第三方）";
         Font = new Font("Microsoft YaHei UI", 10F);
         ClientSize = new Size(660, 370);
         FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -27,7 +27,7 @@ class MainWindow : Form
         StartPosition = FormStartPosition.CenterScreen;
         BackColor = Color.White;
         AutoScaleMode = AutoScaleMode.Dpi;
-        Label heading = new Label { Text = "恢复原版游戏下载", Font = new Font(Font.FontFamily, 18F, FontStyle.Bold), AutoSize = true, Location = new Point(26, 24) };
+        Label heading = new Label { Text = "恢复游戏下载与整合包安装", Font = new Font(Font.FontFamily, 18F, FontStyle.Bold), AutoSize = true, Location = new Point(26, 24) };
         Label explanation = new Label { Text = "选择现有的 PCL2.exe，生成可单独运行的副本。\n原文件会保留，游戏和配置不会被修改。", Location = new Point(28, 77), Size = new Size(604, 52) };
         input.SetBounds(28, 146, 490, 30);
         input.ReadOnly = true;
@@ -35,7 +35,7 @@ class MainWindow : Form
         browse.SetBounds(530, 144, 103, 34);
         browse.Click += delegate { Choose(); };
         status.SetBounds(28, 195, 604, 70);
-        status.Text = "不限版本、文件大小或指纹，自动分析下载限制代码。\n范围：原版下载页、可识别的版本修改页原版入口。";
+        status.Text = "自动分析代码结构，不按固定版本或指纹筛选。\n恢复原版下载、版本修改，以及本地、拖入和在线整合包安装。";
         apply.Text = "生成恢复下载的副本…";
         apply.SetBounds(28, 278, 280, 42);
         apply.Enabled = false;
