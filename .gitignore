@@ -1,0 +1,6 @@
+*.exe
+*.pdb
+*.zip
+obj/
+bin/
+test-output/
