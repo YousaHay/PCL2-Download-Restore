@@ -1,6 +1,6 @@
 # PCL 原版下载恢复工具
 
-第三方独立工具。选择现有 PCL EXE，自动分析其中的原版下载限制，生成恢复下载的副本，原文件保留。
+第三方独立工具，工具作者：**YousaHay**。选择现有 PCL EXE，自动分析其中的原版下载限制，生成恢复下载的副本，原文件保留。
 
 **[下载最新版](https://github.com/YousaHay/PCL2-Download-Restore/releases/latest)** · [使用说明](使用说明.txt) · [验证记录](验证记录.txt)
 

@@ -8,8 +8,8 @@ using System.Windows.Forms;
 
 [assembly: AssemblyTitle("PCL 原版下载恢复工具（第三方）")]
 [assembly: AssemblyDescription("自动定位 PCL 原版下载限制，不按版本或整文件指纹筛选")]
-[assembly: AssemblyVersion("1.2.0.0")]
-[assembly: AssemblyFileVersion("1.2.0.0")]
+[assembly: AssemblyVersion("1.2.1.0")]
+[assembly: AssemblyFileVersion("1.2.1.0")]
 
 class MainWindow : Form
 {
@@ -19,7 +19,7 @@ class MainWindow : Form
     readonly Button browse = new Button();
     public MainWindow(string initial)
     {
-        Text = "PCL 原版下载恢复工具 v1.2（第三方）";
+        Text = "PCL 原版下载恢复工具 v1.2.1（第三方）";
         Font = new Font("Microsoft YaHei UI", 10F);
         ClientSize = new Size(660, 370);
         FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -41,7 +41,7 @@ class MainWindow : Form
         apply.Enabled = false;
         apply.BackColor = Color.FromArgb(226, 239, 255);
         apply.Click += delegate { Apply(); };
-        Label foot = new Label { Text = "第三方独立工具 · PCL 原作者：龙腾猫跃 · 无需联网", Location = new Point(28, 337), Size = new Size(604, 24), ForeColor = Color.DimGray, Font = new Font(Font.FontFamily, 9F) };
+        Label foot = new Label { Text = "工具作者：YousaHay · PCL 原作者：龙腾猫跃 · 无需联网", Location = new Point(28, 337), Size = new Size(604, 24), ForeColor = Color.DimGray, Font = new Font(Font.FontFamily, 9F) };
         Controls.AddRange(new Control[] { heading, explanation, input, browse, status, apply, foot });
         if (!String.IsNullOrWhiteSpace(initial)) Shown += delegate { SelectInput(initial); };
     }
